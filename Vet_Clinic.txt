@@ -1,0 +1,199 @@
+import java.util.*;
+import java.sql.*;
+ 
+interface Service {
+    void performService();
+    double getFee();
+    String getName();
+}
+ 
+abstract class Animal {
+    String name;
+    abstract void displayType();
+}
+ 
+abstract class Pain {
+    String level;
+    abstract void describePain();
+}
+ 
+class Dog extends Animal {
+    Dog() { this.name = "Dog"; }
+    void displayType() { System.out.println("Animal: Dog"); }
+}
+ 
+class Cat extends Animal {
+    Cat() { this.name = "Cat"; }
+    void displayType() { System.out.println("Animal: Cat"); }
+}
+ 
+class Bird extends Animal {
+    Bird() { this.name = "Bird"; }
+    void displayType() { System.out.println("Animal: Bird"); }
+}
+ 
+class Rabbit extends Animal {
+    Rabbit() { this.name = "Rabbit"; }
+    void displayType() { System.out.println("Animal: Rabbit"); }
+}
+ 
+class OtherAnimal extends Animal {
+    String type;
+    OtherAnimal(String type) {
+        this.type = type;
+        this.name = type;
+    }
+    void displayType() { System.out.println("Animal: " + type); }
+}
+ 
+class CustomPain extends Pain {
+    CustomPain(String level) { this.level = level; }
+    void describePain() { System.out.println("Pain Level: " + level); }
+}
+ 
+class WellnessExam implements Service {
+    public void performService() { System.out.println("Routine Check-up Exam performed."); }
+    public double getFee() { return 50.0; }
+    public String getName() { return "Wellness Exam"; }
+}
+class SpayNeuter implements Service {
+    public void performService() { System.out.println("Spaying/Neutering performed."); }
+    public double getFee() { return 120.0; }
+    public String getName() { return "Spay/Neuter"; }
+}
+class DentalCare implements Service {
+    public void performService() { System.out.println("Dental Care performed."); }
+    public double getFee() { return 80.0; }
+    public String getName() { return "Dental Care"; }
+}
+class EmergencyCare implements Service {
+    public void performService() { System.out.println("Emergency Care performed."); }
+    public double getFee() { return 200.0; }
+    public String getName() { return "Emergency Care"; }
+}
+ 
+public class Vet_Clinic {
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        int choice = 0;
+        ArrayList<Service> services = new ArrayList<>();
+ 
+        services.add(new WellnessExam());
+        services.add(new SpayNeuter());
+        services.add(new DentalCare());
+        services.add(new EmergencyCare());
+ 
+        Animal currentAnimal = null;
+ 
+        while (true) {
+            System.out.println("=== Vet Clinic Main Menu ===");
+            System.out.println("1. Type of Service");
+            System.out.println("2. Type of Pain");
+            System.out.println("3. Enter Animal Info");
+            System.out.println("4. Show Services from DB (JDBC)");
+            System.out.println("5. Exit");
+            System.out.print("Enter your choice: ");
+           
+            if (!scanner.hasNextInt()) {
+                System.out.println("Invalid input. Please enter a number.");
+                scanner.next();
+                continue;
+            }
+            choice = scanner.nextInt();
+            scanner.nextLine();
+ 
+            if (choice == 1) {
+                if (currentAnimal == null) {
+                    System.out.println("Please enter your animal info first (option 3).");
+                    continue;
+                }
+                System.out.println("Available Services:");
+                for (int i = 0; i < services.size(); i++) {
+                    System.out.printf("%d. %s ($%.2f)\n", (i+1), services.get(i).getName(), services.get(i).getFee());
+                }
+                System.out.print("Select a service to perform: ");
+                if (scanner.hasNextInt()) {
+                    int job_done = scanner.nextInt();
+                    scanner.nextLine();
+                    if (job_done >= 1 && job_done <= services.size()) {
+                        Service selected = services.get(job_done-1);
+                        selected.performService();
+                        System.out.printf("Service fee: $%.2f\n", selected.getFee());
+                        System.out.print("Proceed to payment? (yes/no): ");
+                        String pay = scanner.nextLine();
+                        if (pay.equalsIgnoreCase("yes")) {
+                            System.out.print("Enter payment amount: $");
+                            double amount = 0;
+                            if (scanner.hasNextDouble()) {
+                                amount = scanner.nextDouble();
+                                scanner.nextLine();
+                                if (amount >= selected.getFee()) {
+                                    System.out.println("Payment successful. Thank you!");
+                                    if (amount > selected.getFee()) {
+                                        System.out.printf("Change: $%.2f\n", amount - selected.getFee());
+                                    }
+                                } else {
+                                    System.out.println("Insufficient payment. Transaction cancelled.");
+                                }
+                            } else {
+                                System.out.println("Invalid amount.");
+                                scanner.next();
+                            }
+                        } else {
+                            System.out.println("Payment cancelled.");
+                        }
+                    } else {
+                        System.out.println("Invalid service selection.");
+                    }
+                } else {
+                    System.out.println("Invalid input.");
+                    scanner.next();
+                }
+               
+            } else if (choice == 2) {
+                System.out.print("Enter the pain level (Mild, Moderate, Severe): ");
+                String painLevel = scanner.nextLine();
+                Pain pain = new CustomPain(painLevel);
+                pain.describePain();
+ 
+            } else if (choice == 3) {
+                System.out.print("Enter the animal type (e.g., Dog, Cat, Bird, Rabbit, or any other): ");
+                String type = scanner.nextLine().trim();
+                switch (type.toLowerCase()) {
+                    case "dog": currentAnimal = new Dog(); break;
+                    case "cat": currentAnimal = new Cat(); break;
+                    case "bird": currentAnimal = new Bird(); break;
+                    case "rabbit": currentAnimal = new Rabbit(); break;
+                    default: currentAnimal = new OtherAnimal(type); break;
+                }
+                currentAnimal.displayType();
+            } else if (choice == 4) {
+                showServicesFromDB();
+            } else if (choice == 5) {
+                System.out.println("Exiting program. Goodbye!");
+                break;
+            } else {
+                System.out.println("Invalid choice. Please try again.");
+            }
+            System.out.println();
+        }
+        scanner.close();
+    }
+ 
+    public static void showServicesFromDB() {
+        String url = "jdbc:mysql://localhost:3306/vet_clinic";
+        String user = "root";
+        String password = "password";
+        try (Connection conn = DriverManager.getConnection(url, user, password);
+            Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT * FROM menu")) {
+            System.out.println("Services from Database:");
+            while (rs.next()) {
+                System.out.println(rs.getInt("id") + ": " + rs.getString("name"));
+            }
+        } catch (SQLException e) {
+            System.out.println("Database error: " + e.getMessage());
+        }
+    }
+}
+ 
